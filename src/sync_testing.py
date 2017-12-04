@@ -36,7 +36,7 @@ class KE_Driver(object):
 		s_lock = _thread.allocate_lock()
 		server = KE_Mock(self.port)
 		_thread.start_new_thread(server.run, ())
-		print(s_lock.acquire())
+		s_lock.acquire()
 		sleep(0.1)
 	
 	def clients(self):
@@ -45,10 +45,9 @@ class KE_Driver(object):
 			c_lock = _thread.allocate_lock()
 			client = KE_Mock(self.port, 0)
 			_thread.start_new_thread(client.run, ())
-			print(c_lock.acquire())
-			sleep(0.1)
+			c_lock.acquire()
+			sleep(10)
 
-
-tester = KE_Driver(int(sys.argv[1]))
+tester = KE_Driver(int(sys.argv[1]), max_clients=100)
 tester.run()
 print("End Test")			

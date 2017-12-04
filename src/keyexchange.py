@@ -16,12 +16,15 @@ KE_BUFF = 256
 KE_SIZE = 4
 #Key length is 128 bits, each int is 8 bits, length is number of ints to a weight/input vector
 # N
-KE_LENGTH = 4
+KE_LENGTH = 4 
 #Number of layers
 # K
 KE_LAYERS = 10
 #Number to sync
-KE_SYNC = 1000
+KE_SYNC = 1
+#Variables used to find average number of steps to sync
+total_steps = 0
+total_runs = 0
 
 def KE_Dot(a, b):
 	g = 0
@@ -32,18 +35,16 @@ def KE_Dot(a, b):
 def KE_Sign(n):
 	return 1 if n >= 0 else -1
 
-def KE_RandVector():
-	x = np.random.randint(-KE_SIZE, KE_SIZE, size=KE_LENGTH).tolist() 
-	y = np.random.randint(2, size=KE_LENGTH).tolist()
-	for i in range(len(y)):
-		x[i] *= KE_Sign(y[i])
+def KE_RandVector(l=KE_SIZE):
+	x = np.random.randint(-l, l+1, size=KE_LENGTH).tolist() 
 	return x
 
-def KE_RandSet():
+def KE_RandSet(l=KE_SIZE):
 	r = []
 	for i in range(KE_LAYERS):
-		r.append(KE_RandVector())
+		r.append(KE_RandVector(l))
 	return r
+
 
 def KE_Add(w, x):
 	result = []
@@ -85,7 +86,6 @@ def KE_BuildKey(data):
 	for n in data:
 		for i in n:
 			h += str(i)
-	print('\n'+h+'\n')
 	s = sha256(h.encode('utf-8'))
 	return int(s.hexdigest(), 16)
 
@@ -117,8 +117,6 @@ class KE_Client(object):
 		self.clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.clientsocket.connect(('127.0.0.1', port))
 		self.weights = KE_RandSet()
-		print("Client rand weights")
-		print(self.weights)
  
 	def mainloop(self):
 		#Send request for KE
@@ -133,17 +131,10 @@ class KE_Client(object):
 			# Instruction from server
 			t = data.pop()
 			if t == KE_KEY_FOUND:
-				print("Possible Key found")
-				print("Client weights and key")
-				print(self.weights)
-				
 				key = KE_BuildKey(self.weights)
-				print(key)
 				if self.keyConfirm(key):
 					ke = 0
 					print("Key Confirmed")
-				else:
-					print("Key dropped")
 			elif t == KE_ERROR:
 				ke = 0
 				print('Connection Closed')
@@ -163,7 +154,6 @@ class KE_Client(object):
 
 	def keyConfirm(self, key):
 		#Bitwise OR a secret with the derived key
-		print("client secret")
 		secret = KE_BuildKey(KE_RandSet())
 		skey = key ^ secret
 		#Send the new key to the server
@@ -185,16 +175,16 @@ class KE_ClientThread(Thread):
 		self.clientsock = clientsock
 		self.weights = KE_RandSet()
 		self.syncAt = KE_SYNC
-		print("Server rand weights")
-		print(self.weights)	
 		Thread.__init__(self)
 
 	def run(self):
 		ke = self.confirm()
 		converged = self.syncAt #Min to sync
 		c = 0	#Number of times matched
+		steps = 0
 		while ke:
-			x = KE_RandSet() 
+			steps += 1
+			x = KE_RandSet(1) 
 			s = KE_Train(self.weights, x)
 			p = x[:]
 			p.append(s)
@@ -217,22 +207,22 @@ class KE_ClientThread(Thread):
 					if c == converged:
 						self.clientsock.send(KE_Dump([KE_KEY_FOUND]))
 						#Build Key
-						print("Possible Key found")
-						print("server weights and key")
-						print(self.weights)
 						key = KE_BuildKey(self.weights)
-						print(key)
 						k = self.keyConfirm(key)
 						self.clientsock.send(KE_Dump(k))	
 						if k:
 							print("Key found")
 							ke = 0
 						else:
-							print("Key dropped")
 							c = 0
 				else:
 					c = 0
-				
+		global total_runs
+		total_runs += 1
+		global total_steps
+		total_steps += steps
+		print(total_steps/total_runs)
+		print(total_runs)
 
 	def confirm(self):
 		data = KE_Load(self.clientsock.recv(KE_BUFF))
@@ -246,7 +236,6 @@ class KE_ClientThread(Thread):
 	
 	def keyConfirm(self, key):
 		#Bitwise OR a secret with the recieved key
-		print("server secret")
 		secret = KE_BuildKey(KE_RandSet())
 		skey = KE_Load(self.clientsock.recv(KE_BUFF))
 		skey = skey ^ secret
