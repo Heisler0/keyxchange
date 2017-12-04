@@ -22,9 +22,6 @@ KE_LENGTH = 4
 KE_LAYERS = 10
 #Number to sync
 KE_SYNC = 1
-#Variables used to find average number of steps to sync
-total_steps = 0
-total_runs = 0
 
 def KE_Dot(a, b):
 	g = 0
@@ -217,12 +214,6 @@ class KE_ClientThread(Thread):
 							c = 0
 				else:
 					c = 0
-		global total_runs
-		total_runs += 1
-		global total_steps
-		total_steps += steps
-		print(total_steps/total_runs)
-		print(total_runs)
 
 	def confirm(self):
 		data = KE_Load(self.clientsock.recv(KE_BUFF))
