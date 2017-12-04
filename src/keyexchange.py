@@ -6,17 +6,19 @@ import binascii
 from hashlib import sha256
 import time
 
+#Max # of clients
+KE_LISTEN = 10
+#Codes
 KE_CONFIRMATION_CODE = 111
 KE_KEY_FOUND = 222
 KE_ERROR = 333
 #Buff size
-KE_BUFF = 256
-#Key sizei
-# L
-KE_SIZE = 4
+KE_BUFF = 2048
+#Key size
+KE_SIZE = 3
 #Key length is 128 bits, each int is 8 bits, length is number of ints to a weight/input vector
 # N
-KE_LENGTH = 4 
+KE_LENGTH = 10 
 #Number of layers
 # K
 KE_LAYERS = 10
@@ -51,9 +53,9 @@ def KE_Add(w, x):
 	for i in range(KE_LENGTH):
 		r = w[i] + x[i]
 		if r > KE_SIZE:
-			r = 4
+			r = KE_SIZE
 		elif r < -KE_SIZE:
-			r = -4
+			r = -KE_SIZE
 		
 		result.append(r)
 	return result
@@ -100,7 +102,7 @@ class KE_Server(object):
 	def __init__(self, port):
 		self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.serversocket.bind(('127.0.0.1', port))
-		self.serversocket.listen(1)
+		self.serversocket.listen(KE_LISTEN)
 		print('Listening on port '+str(port))
 
 
