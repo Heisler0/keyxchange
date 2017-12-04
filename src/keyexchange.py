@@ -15,17 +15,21 @@ KE_ERROR = 333
 #Buff size
 KE_BUFF = 2048
 #Key size
+# L
 KE_SIZE = 3
-#Key length is 128 bits, each int is 8 bits, length is number of ints to a weight/input vector
 # N
 KE_LENGTH = 10 
 #Number of layers
 # K
 KE_LAYERS = 10
 #Number to sync
-KE_SYNC = 1
+KE_SYNC = 1600
+#sync testing
+test_number = 0
+total_steps = 0
+total_time = 0
 
-def KE_Dot(a, b):
+def KE_Dot(a, b):	
 	g = 0
 	for i in range(KE_LENGTH):
 		g = g + (a[i] * b[i])
@@ -35,7 +39,7 @@ def KE_Sign(n):
 	return 1 if n >= 0 else -1
 
 def KE_RandVector(l=KE_SIZE):
-	x = np.random.randint(-l, l+1, size=KE_LENGTH).tolist() 
+	x = np.random.randint(-l, l+1, size=KE_LENGTH).tolist()
 	return x
 
 def KE_RandSet(l=KE_SIZE):
@@ -177,12 +181,14 @@ class KE_ClientThread(Thread):
 		Thread.__init__(self)
 
 	def run(self):
+		start = time.time()
 		ke = self.confirm()
 		converged = self.syncAt #Min to sync
 		c = 0	#Number of times matched
 		steps = 0
 		while ke:
 			steps += 1
+			c = c + 1
 			x = KE_RandSet(1) 
 			s = KE_Train(self.weights, x)
 			p = x[:]
@@ -202,8 +208,7 @@ class KE_ClientThread(Thread):
 				if t == 1:
 				#Adjust weights accordingly
 					self.weights = KE_Learn(self.weights, x, s)
-					c = c + 1
-					if c == converged:
+					if c >= converged:
 						self.clientsock.send(KE_Dump([KE_KEY_FOUND]))
 						#Build Key
 						key = KE_BuildKey(self.weights)
@@ -213,9 +218,15 @@ class KE_ClientThread(Thread):
 							print("Key found")
 							ke = 0
 						else:
-							c = 0
-				else:
-					c = 0
+							c = converged - 100
+		global test_number
+		global total_steps
+		global total_time
+		test_number += 1
+		total_steps += steps
+		total_time += time.time() - start
+		print(total_steps/test_number)
+		print(total_time/test_number)
 
 	def confirm(self):
 		data = KE_Load(self.clientsock.recv(KE_BUFF))
