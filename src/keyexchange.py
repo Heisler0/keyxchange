@@ -16,14 +16,14 @@ KE_ERROR = 333
 KE_BUFF = 2048
 #Key size
 # L
-KE_SIZE = 3
+KE_SIZE = 4
 # N
-KE_LENGTH = 10 
+KE_LENGTH = 20 
 #Number of layers
 # K
-KE_LAYERS = 10
+KE_LAYERS = 20
 #Number to sync
-KE_SYNC = 1600
+KE_SYNC = 10000
 #sync testing
 test_number = 0
 total_steps = 0
@@ -49,10 +49,10 @@ def KE_RandSet(l=KE_SIZE):
 	return r
 
 
-def KE_Add(w, x):
+def KE_Add(w, x, s=1):
 	result = []
 	for i in range(KE_LENGTH):
-		r = w[i] + x[i]
+		r = w[i] + (s*x[i])
 		if r > KE_SIZE:
 			r = KE_SIZE
 		elif r < -KE_SIZE:
@@ -65,7 +65,7 @@ def KE_Learn(w, x, t):
 	result = []
 	for i in range(KE_LAYERS):
 		if t==KE_Sign(KE_Dot(w[i], x[i])):
-			result.append(KE_Add(w[i], x[i])) 
+			result.append(KE_Add(w[i], x[i], t)) 
 		else:
 			result.append(w[i])
 		
@@ -218,7 +218,7 @@ class KE_ClientThread(Thread):
 							print("Key found")
 							ke = 0
 						else:
-							c = converged - 100
+							c = converged - 500
 		global test_number
 		global total_steps
 		global total_time
