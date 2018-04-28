@@ -1,2 +1,2 @@
 # keyxchange
-An attempt at symmetric key exchange by implementing multilayer perceptrons that synchronous by sharing input and output over a public channel. 
+An attempt at a symmetric key exchange by implementing learning tree parity machines that share input and output over a public channel and converge to a private key. 
